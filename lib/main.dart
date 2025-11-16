@@ -5,6 +5,10 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+const apiUrl = "https://showjustinfoappbackend.onrender.com/quote";
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -45,16 +49,38 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
-Future<void> showRandomQuoteNotification() async {
-  if (_quotes.isEmpty) {
-    final quotesString = await rootBundle.loadString('assets/quotes.txt');
-    _quotes = quotesString.split('\n').where((q) => q.isNotEmpty).toList();
+Future<String?> fetchQuoteFromAPI() async {
+  try {
+    final response = await http.get(Uri.parse(apiUrl));
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data["quote"]; // API returns { quote: "...", author: "..." }
+    } else {
+      print("Error: ${response.statusCode}");
+      return null;
+    }
+  } catch (e) {
+    print("API call failed: $e");
+    return null;
   }
+}
 
-  if (_quotes.isEmpty) return;
 
-  final random = Random();
-  final quote = _quotes[random.nextInt(_quotes.length)];
+Future<void> showRandomQuoteNotification() async {
+  // if (_quotes.isEmpty) {
+  //  final quotesString = await rootBundle.loadString('assets/quotes.txt');
+  //  _quotes = quotesString.split('\n').where((q) => q.isNotEmpty).toList();
+  // }
+  //
+  // if (_quotes.isEmpty) return;
+  //
+  // final random = Random();
+  // final quote = _quotes[random.nextInt(_quotes.length)];
+
+  final apiQuote = await fetchQuoteFromAPI();
+  if (apiQuote == null) return;
+  final quote = apiQuote;
 
   const androidDetails = AndroidNotificationDetails(
     'random_quote_channel',
@@ -147,8 +173,18 @@ class _MyHomePageState extends State<MyHomePage> {
     final quotesString = await rootBundle.loadString('assets/quotes.txt');
     setState(() {
       _quotes = quotesString.split('\n').where((q) => q.isNotEmpty).toList();
-      _setRandomQuote();
+      // _setRandomQuote();
+      _fetchAndSetQuote();
     });
+  }
+
+  Future<void> _fetchAndSetQuote() async {
+    final quote = await fetchQuoteFromAPI();
+    if (quote != null) {
+      setState(() {
+        _quote = quote;
+      });
+    }
   }
 
   void _setRandomQuote() {
@@ -217,7 +253,7 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               const SizedBox(height: 40),
               ElevatedButton(
-                onPressed: _setRandomQuote,
+                onPressed: _fetchAndSetQuote,
                 child: const Text('New Quote'),
               ),
               const SizedBox(height: 20),
