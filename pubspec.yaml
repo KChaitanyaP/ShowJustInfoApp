@@ -33,11 +33,8 @@ dependencies:
   flutter_local_notifications: ^17.2.2
   android_alarm_manager_plus: ^5.0.0
   http: ^1.2.0
-
-
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  geolocator: ^9.0.2
 
 dev_dependencies:
   flutter_test:
